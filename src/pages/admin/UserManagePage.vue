@@ -12,7 +12,12 @@
     </a-form-item>
   </a-form>
   <!--表单-->
-  <a-table :columns="columns" :data-source="dataList" :pagination="pagination" @change="doTableChange">
+  <a-table
+    :columns="columns"
+    :data-source="dataList"
+    :pagination="pagination"
+    @change="doTableChange"
+  >
     <template #headerCell="{ column }">
       <template v-if="column.key === 'name'">
         <span>
@@ -25,12 +30,36 @@
       <template v-if="column.dataIndex === 'userAvatar'">
         <a-image :src="record.userAvatar" :width="120" />
       </template>
-      <template v-else-if="column.dataIndex === 'userRole'">
-        <div v-if="record.userRole === 'admin'">
-          <a-tag color="green">管理员</a-tag>
+      <template v-else-if="column.dataIndex === 'userName'">
+        <div v-if="editingKey === record.id">
+          <a-input v-model:value="record.userName" style="margin: -5px 0" />
         </div>
         <div v-else>
-          <a-tag color="blue">普通用户</a-tag>
+          {{ record.userName }}
+        </div>
+      </template>
+      <template v-else-if="column.dataIndex === 'userProfile'">
+        <div v-if="editingKey === record.id">
+          <a-textarea v-model:value="record.userProfile" :rows="2" style="margin: -5px 0" />
+        </div>
+        <div v-else>
+          {{ record.userProfile }}
+        </div>
+      </template>
+      <template v-else-if="column.dataIndex === 'userRole'">
+        <div v-if="editingKey === record.id">
+          <a-select v-model:value="record.userRole" style="width: 120px">
+            <a-select-option value="user">
+              <a-tag color="blue">普通用户</a-tag>
+            </a-select-option>
+            <a-select-option value="admin">
+              <a-tag color="green">管理员</a-tag>
+            </a-select-option>
+          </a-select>
+        </div>
+        <div v-else>
+          <a-tag v-if="record.userRole === 'admin'" color="green">管理员</a-tag>
+          <a-tag v-else color="blue">普通用户</a-tag>
         </div>
       </template>
       <template v-else-if="column.dataIndex === 'createTime'">
@@ -40,18 +69,34 @@
         {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm:ss') }}
       </template>
       <template v-else-if="column.key === 'action'">
-        <a-button danger @click="doDelete(record.id)">删除</a-button>
+        <div v-if="editingKey === record.id" class="editable-row-operations">
+          <a @click="save(record)" style="margin-right: 8px">保存</a>
+          <a-popconfirm title="确定取消?" @confirm="cancel">
+            <a>取消</a>
+          </a-popconfirm>
+        </div>
+        <div v-else class="editable-row-operations">
+          <a @click="edit(record)" style="margin-right: 8px">编辑</a>
+          <a-popconfirm title="确定删除?" @confirm="doDelete(record.id)">
+            <a style="color: red">删除</a>
+          </a-popconfirm>
+        </div>
       </template>
     </template>
-
   </a-table>
 </template>
 <script lang="ts" setup>
-import { SmileOutlined } from '@ant-design/icons-vue';
+import { SmileOutlined, DownOutlined } from '@ant-design/icons-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
-import { deleteUserUsingPost, listUserVoByPageUsingPost } from '@/api/userController.ts'
+import {
+  deleteUserUsingPost,
+  listUserVoByPageUsingPost,
+  updateUserUsingPost,
+} from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
+import { cloneDeep } from 'lodash-es'
+
 const columns = [
   {
     title: 'id',
@@ -95,6 +140,10 @@ const columns = [
 const dataList = ref<API.UserVO[]>([])
 const total = ref(0)
 
+// 编辑相关状态
+const editingKey = ref('')
+const originalRecord = ref<API.UserVO | null>(null)
+
 // 搜索条件
 const searchParams = reactive<API.UserQueryRequest>({
   current: 1,
@@ -104,7 +153,7 @@ const searchParams = reactive<API.UserQueryRequest>({
 // 获取数据
 const fetchData = async () => {
   const res = await listUserVoByPageUsingPost({
-    ...searchParams
+    ...searchParams,
   })
   if (res.data.data) {
     dataList.value = res.data.data.records ?? []
@@ -131,7 +180,7 @@ const pagination = computed(() => {
 })
 
 // 表格变化处理
-const doTableChange = (page: { current: number; pageSize: number }) => {
+const doTableChange = (page: any) => {
   searchParams.current = page.current
   searchParams.pageSize = page.pageSize
   fetchData()
@@ -145,11 +194,11 @@ const doSearch = () => {
 }
 
 // 删除数据
-const doDelete = async (id: number) => {
+const doDelete = async (id: string) => {
   if (!id) {
     return
   }
-  const res = await deleteUserUsingPost({ id })
+  const res = await deleteUserUsingPost({ id: parseInt(id) })
   if (res.data.code === 0) {
     message.success('删除成功')
     // 刷新数据
@@ -159,5 +208,57 @@ const doDelete = async (id: number) => {
   }
 }
 
+// 编辑用户
+const edit = (record: API.UserVO) => {
+  // 保存原始数据，用于取消时恢复
+  originalRecord.value = cloneDeep(record)
+  editingKey.value = record.id?.toString() || ''
+}
+
+// 保存编辑
+const save = async (record: API.UserVO) => {
+  try {
+    const updateData: API.UserUpdateRequest = {
+      id: record.id,
+      userName: record.userName,
+      userProfile: record.userProfile,
+      userRole: record.userRole,
+      userAvatar: record.userAvatar,
+    }
+
+    const res = await updateUserUsingPost(updateData)
+
+    if (res.data.code === 0) {
+      message.success('更新成功')
+      editingKey.value = ''
+      originalRecord.value = null
+      // 刷新数据
+      fetchData()
+    } else {
+      message.error('更新失败：' + res.data.message)
+    }
+  } catch (error) {
+    message.error('更新失败')
+    console.error(error)
+  }
+}
+
+// 取消编辑
+const cancel = () => {
+  // 恢复原始数据
+  if (originalRecord.value) {
+    const index = dataList.value.findIndex((item: any) => item.id === originalRecord.value?.id)
+    if (index > -1) {
+      dataList.value[index] = cloneDeep(originalRecord.value) as API.UserVO
+    }
+  }
+  editingKey.value = ''
+  originalRecord.value = null
+}
 </script>
 
+<style scoped>
+.editable-row-operations a {
+  margin-right: 8px;
+}
+</style>
