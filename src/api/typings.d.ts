@@ -678,6 +678,7 @@ declare namespace API {
   }
 
   type UserRegisterRequest = {
+    captcha?: string
     checkPassword?: string
     userAccount?: string
     userPassword?: string

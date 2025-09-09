@@ -1,4 +1,3 @@
-// @ts-ignore
 /* eslint-disable */
 import request from '@/request'
 
@@ -10,6 +9,14 @@ export async function addUserUsingPost(body: API.UserAddRequest, options?: { [ke
       'Content-Type': 'application/json',
     },
     data: body,
+    ...(options || {}),
+  })
+}
+
+/** captcha GET /api/user/captcha */
+export async function captchaUsingGet(options?: { [key: string]: any }) {
+  return request<any>('/api/user/captcha', {
+    method: 'GET',
     ...(options || {}),
   })
 }

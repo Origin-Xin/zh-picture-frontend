@@ -23,6 +23,11 @@ myAxios.interceptors.request.use(
 // 全局响应拦截器
 myAxios.interceptors.response.use(
   function (response) {
+    // 对于验证码接口，直接返回响应，不做JSON格式检查
+    if (response.request.responseURL.includes('/api/user/captcha')) {
+      return response
+    }
+
     const { data } = response
     // 未登录
     if (data.code === 40100) {
