@@ -59,7 +59,6 @@ const router = createRouter({
       component: UserProfilePage,
       meta: {
         access: ACCESS_ENUM.USER,
-        hideInMenu: true,
       },
     },
     {
@@ -152,6 +151,7 @@ const router = createRouter({
       component: SpaceAnalyzePage,
       meta: {
         access: ACCESS_ENUM.USER,
+        hideInMenu: true,
       },
     },
     {

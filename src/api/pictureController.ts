@@ -158,6 +158,14 @@ export async function getPictureOutPaintingTaskUsingGet(
   )
 }
 
+/** listPopularTagCategory GET /api/picture/popular/tag_category */
+export async function listPopularTagCategoryUsingGet(options?: { [key: string]: any }) {
+  return request<API.BaseResponsePictureTagCategory_>('/api/picture/popular/tag_category', {
+    method: 'GET',
+    ...(options || {}),
+  })
+}
+
 /** doPictureReview POST /api/picture/review */
 export async function doPictureReviewUsingPost(
   body: API.PictureReviewRequest,
