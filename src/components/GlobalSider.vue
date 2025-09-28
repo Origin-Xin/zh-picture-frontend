@@ -385,7 +385,7 @@ const doLogout = async () => {
   margin-bottom: 28px;
   margin-left: 8px;
   margin-right: 8px;
-  min-height: calc(120vh - 180px);
+  min-height: calc(100vh - 180px);
   overflow: hidden;
 }
 

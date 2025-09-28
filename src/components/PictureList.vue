@@ -1,46 +1,48 @@
 <template>
   <div class="picture-list">
-    <!-- 图片列表 -->
-    <a-list
-      :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 6 }"
-      :data-source="dataList"
-      :loading="loading"
-    >
-      <template #renderItem="{ item: picture }">
-        <a-list-item style="padding: 0">
-          <!-- 单张图片 -->
-          <a-card hoverable @click="doClickPicture(picture)">
-            <template #cover>
-              <img
-                style="height: 180px; object-fit: cover"
-                :alt="picture.name"
-                :src="picture.thumbnailUrl ?? picture.url"
-                loading="lazy"
-              />
-            </template>
-            <a-card-meta :title="picture.name">
-              <template #description>
-                <a-flex>
-                  <a-tag color="green">
-                    {{ picture.category ?? '默认' }}
-                  </a-tag>
-                  <a-tag v-for="tag in picture.tags" :key="tag">
-                    {{ tag }}
-                  </a-tag>
-                </a-flex>
+    <a-spin :spinning="loading">
+      <MasonryWall
+        :items="dataList"
+        :column-width="masonryColumnWidth"
+        :gap="16"
+        :max-columns="6"
+        :min-columns="1"
+      >
+        <template #default="{ item: picture, index }">
+          <div class="masonry-item">
+            <a-card hoverable @click="doClickPicture(picture)">
+              <template #cover>
+                <img
+                  :alt="picture.name"
+                  :src="picture.thumbnailUrl ?? picture.url"
+                  loading="lazy"
+                  class="masonry-img"
+                />
               </template>
-            </a-card-meta>
-            <template v-if="showOp" #actions>
-              <search-outlined @click="(e) => doSearch(picture, e)" />
-              <share-alt-outlined @click="(e) => doShare(picture, e)" />
-              <edit-outlined v-if="canEdit" @click="(e) => doEdit(picture, e)" />
-              <delete-outlined v-if="canDelete" @click="(e) => doDelete(picture, e)" />
-            </template>
-          </a-card>
-        </a-list-item>
-        <ShareModal ref="shareModalRef" :link="shareLink" />
-      </template>
-    </a-list>
+              <a-card-meta :title="picture.name">
+                <template #description>
+                  <a-flex>
+                    <a-tag color="green">
+                      {{ picture.category ?? '默认' }}
+                    </a-tag>
+                    <a-tag v-for="tag in picture.tags" :key="tag">
+                      {{ tag }}
+                    </a-tag>
+                  </a-flex>
+                </template>
+              </a-card-meta>
+              <template v-if="showOp" #actions>
+                <search-outlined @click="(e) => doSearch(picture, e)" />
+                <share-alt-outlined @click="(e) => doShare(picture, e)" />
+                <edit-outlined v-if="canEdit" @click="(e) => doEdit(picture, e)" />
+                <delete-outlined v-if="canDelete" @click="(e) => doDelete(picture, e)" />
+              </template>
+            </a-card>
+            <ShareModal ref="shareModalRef" :link="shareLink" />
+          </div>
+        </template>
+      </MasonryWall>
+    </a-spin>
   </div>
 </template>
 
@@ -49,7 +51,8 @@ import { useRouter } from 'vue-router'
 import { deletePictureUsingPost } from '@/api/pictureController.ts'
 import { message } from 'ant-design-vue'
 import ShareModal from '@/pages/ShareModal.vue'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import MasonryWall from '@yeger/vue-masonry-wall'
 import {
   DeleteOutlined,
   EditOutlined,
@@ -133,6 +136,19 @@ const doShare = (picture, e) => {
     shareModalRef.value.openModal()
   }
 }
+
+// Masonry 响应式列宽：根据容器宽度自适应列数
+const masonryColumnWidth = computed(() => 240)
 </script>
 
-<style scoped></style>
+<style scoped>
+.masonry-item {
+  margin-bottom: 16px;
+}
+
+.masonry-img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+}
+</style>

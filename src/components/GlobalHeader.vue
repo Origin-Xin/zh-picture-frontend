@@ -25,14 +25,48 @@
           <span class="decoration-icon">🍟</span>
           <span class="decoration-icon">🌭</span>
         </div>
-        <a-button
-          type="primary"
-          size="small"
-          @click="$router.push('/user/login')"
-          class="login-btn"
-        >
-          登录
-        </a-button>
+        
+        <!-- 未登录状态 -->
+        <template v-if="!isLoggedIn">
+          <a-button
+            type="primary"
+            size="small"
+            @click="$router.push('/user/login')"
+            class="login-btn"
+          >
+            登录
+          </a-button>
+        </template>
+        
+        <!-- 已登录状态 -->
+        <template v-else>
+          <a-dropdown placement="bottomRight">
+            <div class="user-info">
+              <a-avatar 
+                :src="loginUserStore.loginUser.userAvatar" 
+                :size="32"
+                class="user-avatar"
+              >
+                {{ loginUserStore.loginUser.userName?.charAt(0) }}
+              </a-avatar>
+              <span class="username">{{ loginUserStore.loginUser.userName }}</span>
+              <DownOutlined class="dropdown-icon" />
+            </div>
+            <template #overlay>
+              <a-menu>
+                <a-menu-item @click="goToProfile">
+                  <UserOutlined />
+                  个人中心
+                </a-menu-item>
+                <a-menu-divider />
+                <a-menu-item @click="doLogout">
+                  <LogoutOutlined />
+                  退出登录
+                </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+        </template>
       </div>
     </div>
   </div>
@@ -214,6 +248,51 @@
   transform: translateY(0) !important;
 }
 
+/* 用户信息区域 */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.user-info:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar {
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.username {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1890ff;
+  white-space: nowrap;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-icon {
+  font-size: 10px;
+  color: #1890ff;
+  transition: transform 0.3s ease;
+}
+
+.user-info:hover .dropdown-icon {
+  transform: rotate(180deg);
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   #GlobalHeader {
@@ -248,6 +327,21 @@
     height: 28px !important;
     font-size: 12px !important;
     padding: 0 8px !important;
+  }
+
+  .user-info {
+    padding: 2px 6px;
+    gap: 6px;
+  }
+
+  .username {
+    font-size: 12px;
+    max-width: 60px;
+  }
+
+  .user-avatar {
+    width: 24px !important;
+    height: 24px !important;
   }
 }
 
@@ -285,8 +379,63 @@
     padding: 0 6px !important;
     min-width: 40px !important;
   }
+
+  .user-info {
+    padding: 1px 4px;
+    gap: 4px;
+  }
+
+  .username {
+    font-size: 11px;
+    max-width: 40px;
+  }
+
+  .user-avatar {
+    width: 20px !important;
+    height: 20px !important;
+  }
 }
 </style>
 <script lang="ts" setup>
-// 无需额外的逻辑，只保留文字和图标
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useLoginUserStore } from '@/stores/useLoginUserStore'
+import { message } from 'ant-design-vue'
+import { 
+  UserOutlined, 
+  LogoutOutlined, 
+  DownOutlined 
+} from '@ant-design/icons-vue'
+import ACCESS_ENUM from '@/access/accessEnum'
+
+const router = useRouter()
+const loginUserStore = useLoginUserStore()
+
+// 判断是否已登录
+const isLoggedIn = computed(() => {
+  return loginUserStore.loginUser && 
+         loginUserStore.loginUser.id && 
+         loginUserStore.loginUser.userRole !== ACCESS_ENUM.NOT_LOGIN
+})
+
+// 跳转到个人中心
+const goToProfile = () => {
+  router.push('/user/profile')
+}
+
+// 退出登录
+const doLogout = async () => {
+  try {
+    // 清除登录状态
+    loginUserStore.setLoginUser({
+      userName: '未登录',
+      userRole: ACCESS_ENUM.NOT_LOGIN,
+    })
+    message.success('已退出登录')
+    // 跳转到首页
+    router.push('/')
+  } catch (error) {
+    message.error('退出登录失败')
+  }
+}
 </script>
